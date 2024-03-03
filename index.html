@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meme Searcher</title>
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mx-auto px-8">
+        <h1 class="text-4xl font-blod text-center">Meme Searcher</h1>
+    </div>
+    
+    <div class="flex flex-col justify-center ">
+        <input id="titlebox" class="border-2 mx-5 my-5" type="text" placeholder="meme title"/>
+        <input id="numbox" class="border-2 mx-5 my-5" type="number" placeholder="max num of search(default:10)"/>
+        <div class="flex item-center mx-5 my-7">
+            <input id="Default lang" class="w-4 h-4" type="checkbox"/>
+            <lable for="Default lang" class="text-gray-2 ">en lang only</lable>
+        </div>
+        <button onclick="wikidataSearch()" class="bg-blue-200 py-2 px-4 mx-5 my-5">search</button>
+    </div>
+
+    <script>
+        
+        function makeQuery(){
+            let mainquery = `SELECT ?internetMeme ?internetMemeLabel WHERE {?internetMeme wdt:P31 wd:Q2927074. ?internetMeme rdfs:label ?internetMemeLabel.`
+
+            let titlebox = document.getElementById("titlebox");
+            let titlecon = ``;
+            
+            if(titlebox.value){
+                //ユーザが入力したキーワードと部分一致を探るクエリ
+                titlecon = `FILTER(CONTAINS(LCASE(?internetMemeLabel), LCASE("${titlebox.value}")))`
+            }
+
+            const numbox = document.getElementById("numbox");
+            const numint = parseInt(numbox.value,10); //もし小数点以下が入力されていても切り捨てる
+            const defaultnum = 10;
+            let limitq = `LIMIT ${defaultnum}`;
+            if(numint && numint > 0){ //検索最大件数は1以上の整数
+                limitq = `LIMIT ${numint}`; //ユーザが入力している数値に書き換え
+            }
+
+            const checkboxs = document.getElementsByClassName("w-4 h-4");
+            let langfilter = "";
+            if(checkboxs[0].checked){
+                langfilter = `FILTER(LANG(?internetMemeLabel) = "en")`; //英語ののみのタイトルに絞る
+            }
+
+            let searchq = mainquery + titlecon + langfilter + "}" + limitq;
+
+            return searchq;
+        }
+
+        
+
+        function wikidataSearch(){
+            const Prefixsets = "PREFIX wd: <http://www.wikidata.org/entity/> PREFIX wdt: <http://www.wikidata.org/prop/direct/> PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"
+            let apiUrl = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql?format=json&query=' + encodeURI(makeQuery());
+            const Labelsets = "SERVICE wikibase:label { bd:serviceParam wikibase:language '[AUTO_LANGUAGE],en'. }"; 
+
+            //ラベル表示,prefix設定をクエリに追加
+            apiUrl += '&' + encodeURIComponent(Labelsets) + '&' + encodeURIComponent(Prefixsets);
+            
+            // Fetch APIを使用してAPIを呼び出す
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+
+                    // レスポンスを表示する要素を取得
+                    const resultElement = document.getElementById('results');
+
+                    //直前の結果を削除する
+                    resultElement.innerHTML = "";
+
+                    //取得データ
+                    const dataarray = data.results.bindings;
+                    
+                    //meme titleの埋め込み
+                    if(dataarray.length > 0){
+                        for(let i = 0; i < dataarray.length; i++){
+                            let gettitle = document.createElement('p');
+                            gettitle.textContent = dataarray[i].internetMemeLabel.value;
+                            gettitle.classList.add("mx-5","my-2","fornt-bold"); //tailwind cssのクラスを指定する
+                            resultElement.appendChild(gettitle);
+                        }
+                    }else{
+                        const NotFindstr = document.createElement('h3');
+                        NotFindstr.textContent = "Not Found...";
+                        NotFindstr.classList.add("text-4xl","font-blod","text-center");
+                        resultElement.appendChild(NotFindstr);
+                    }
+
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    
+                    const Notsolve = document.createElement('h3');
+                    Notsoleve.textContent = "Sorry Server Error...";
+                    Notsolve.classList.add("text-4xl","font-blod","text-center");
+                }); 
+        }
+    </script>
+
+    <div id="results" class="flex flex-col justify-center ">
+    </div>
+</body>
+</html>
