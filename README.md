@@ -1,4 +1,5 @@
-!MemeのタイトルをRDFであるwikidataからSPARQLをWEBapiで発行し、条件に当てはまったタイトルを表示します。
+# MemeSearcher
+## MemeのタイトルをRDFであるwikidataからSPARQLをWEBapiで発行し、条件に当てはまったタイトルを表示します。
 
 条件一覧
 1. タイトル指定
